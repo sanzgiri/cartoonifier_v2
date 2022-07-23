@@ -302,7 +302,7 @@ class Predictor(BasePredictor):
 
     def predict(self,
                 infile: Path = Input(description="Input video"),
-                frame_rate: int = Input(description="Frames per second to sample", default=2),
+                frame_rate: int = Input(description="Frames per second to sample", default=24),
                 horizontal_resolution: int = Input(description="Horizontal video resolution", default=480)
                 ) -> Path:
 
