@@ -1,0 +1,34 @@
+# Configuration for Cog ⚙️
+# Reference: https://github.com/replicate/cog/blob/main/docs/yaml.md
+
+build:
+  # set to true if your model requires a GPU
+  gpu: True
+
+  # a list of ubuntu apt packages to install
+  system_packages:
+    - "libglib2.0"
+    - "ffmpeg"
+
+  # python version in the form '3.8' or '3.8.12'
+  python_version: "3.7"
+
+  # a list of packages in the format <package-name>==<version>
+  python_packages:
+    - "tensorflow==2.2.0"
+    - "numpy==1.18.5"
+    - "tf_slim==1.1.0"
+    - "scikit-image==0.19.3"
+    - "opencv-python-headless==4.6.0.66"
+#    - "tensorflow==1.15"
+#    - "scikit-image==0.14.5"
+    - "pillow==6.2.1"
+#    - "opencv-python-headless==4.3.0.36"
+  
+  # commands run after the environment is setup
+  # run:
+    # - "echo env is ready!"
+    # - "echo another command if needed"
+
+# predict.py defines how predictions are run on your model
+predict: "predict.py:Predictor"
