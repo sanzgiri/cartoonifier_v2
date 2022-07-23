@@ -75,8 +75,8 @@ def fast_guided_filter(lr_x, lr_y, hr_x, r=1, eps=1e-8):
     return output
 
 
-def resblock(inputs, out_channel=32, name='resblock'):
-    with tf.variable_scope(name):
+def resblock(inputs, out_channel=32, name='resblock', reuse=False):
+    with tf.variable_scope(name, reuse=reuse):
         x = slim.convolution2d(inputs, out_channel, [3, 3],
                                activation_fn=None, scope='conv1')
         x = tf.nn.leaky_relu(x)
@@ -171,7 +171,7 @@ def video_stats(cap):
 
 
 def cartoonize_video(content_path, output_path, sess, input_photo, final_out,
-                     time_interval=1.0, dimension_min=720, verbose=True):
+                     time_interval, dimension_min, verbose=True):
     """Gets all results from running inference on images in the entire video file
     Parameters
     ----------
@@ -307,10 +307,12 @@ class Predictor(BasePredictor):
                 ) -> Path:
 
         """Run a single prediction on the model"""
+        print(f"File: {infile}")
         model_path = 'saved_models'
         time_interval = float(1/frame_rate)
         dimension_min = horizontal_resolution
 
+        tf.reset_default_graph()
         input_photo = tf.placeholder(tf.float32, [1, None, None, 3])
         network_out = unet_generator(input_photo)
         final_out = guided_filter(input_photo, network_out, r=1, eps=5e-3)
@@ -326,26 +328,30 @@ class Predictor(BasePredictor):
         sess.run(tf.global_variables_initializer())
         saver.restore(sess, tf.train.latest_checkpoint(model_path))
 
-        infile_path = Path(infile)
-        outfile_path = Path("o")
+        #infile_path = Path(infile)
+        outfile = "./processed.mp4"
 
-        cap = cv2.VideoCapture(infile)
+        cap = cv2.VideoCapture(str(infile))
         total_milliseconds, total_frames = video_stats(cap)
-        print(f"File: {infile}, time: {total_milliseconds}, frames: {total_frames}, outfile: {str(outfile_path)}")
+        print(f"File: {infile}, time: {total_milliseconds}, frames: {total_frames}, outfile: {outfile}")
 
-        stem = Path(infile_path).stem
-        audiofile = f"{stem}_audio.mp3"
-        videofile = f"{stem}_video.mp4"
-        mergedfile = f"{stem}_cartoon.mp4"
+        os.system("rm -f ./output_audio.mp3")
+        os.system("rm -f ./output_video.mp4")
+        os.system("rm -f ./output_cartoon.mp4")
+        os.system("rm -f ./processed.mp4")
+
+        audiofile = f"./output_audio.mp3"
+        videofile = f"./output_video.mp4"
+        mergedfile = f"./output_cartoon.mp4"
         split_cmd = f"ffmpeg -i {infile} -map 0:a {audiofile} -map 0:v {videofile}"
         print(split_cmd)
         os.system(split_cmd)
 
-        merge_cmd = f"ffmpeg -i {outfile_path} -i {audiofile} {mergedfile}"
-        print(merge_cmd)
+        cartoonize_video(videofile, outfile, sess, input_photo, final_out,
+                        time_interval, dimension_min, verbose=True)
 
-        cartoonize_video(videofile, str(outfile_path), sess, input_photo, final_out,
-                        dimension_min, time_interval, verbose=True)
+        merge_cmd = f"ffmpeg -i {outfile} -i {audiofile} {mergedfile}"
+        print(merge_cmd)
         os.system(merge_cmd)
 
         return Path(mergedfile)
